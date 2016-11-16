@@ -13,7 +13,7 @@
 
 #define MAXLINE 99
 
-int main(int argc, char **argv)
+int mainClient(int argc, char **argv)
 {
   int			sockfd, n;
   char			recvline[MAXLINE + 1];
