@@ -1,5 +1,6 @@
 int main(int argc, char *argv[]) {
 	int numClient = 0;
+	int idClient = 0;
 	//numClient = 0 se primo accesso del server altrimenti leggi da file dove era arrivato
 	//Accetta connessioni dai client
 	switch (fork()) {

@@ -11,13 +11,13 @@ int main(int argc, char *argv[]) {
 	} else /*Gia avviato*/{
 		//Invio id (valoreLetto) al server
 		//idClient = idPrecedenteSalvatoNelServer
-		count = valorePrimaDellaDisconnessione
+		//count = valorePrimaDellaDisconnessione
 	}
-
+/*
 	while (true) {
 		//Invio count al server
 		//Sleep
 		count++;
-	}
+	}*/
 	return 0;
 }
