@@ -5,13 +5,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>
+#include <time.h>
 
 #define BUFF_SIZE 100
+#define MAX_SLEEP_TIME 10
 #define CONFIG_FILENAME "config"
 
 int main(int argc, char *argv[]) {
 
-	int valoreLetto = 0;
+	srand(time(NULL));
+
 	int idClient = -1;
 	int count = 0;
 
@@ -19,20 +22,24 @@ int main(int argc, char *argv[]) {
 
 	//Creazione connessione con server
 	//Lettura file
-	if (valoreLetto == -1)/*Nuovo*/{
+	if (idClient < 1)/*Nuovo*/{
 		//Richiesta id al server (invia 0)
 		//idClient = idDatoDalServer
+		idClient = richiestaIdAlServer();
 		count = 0;
 	} else /*Gia avviato*/{
 		//Invio id (valoreLetto) al server
 		//idClient = idPrecedenteSalvatoNelServer
 		//count = valorePrimaDellaDisconnessione
+		count = richiestaCountAlServer(idClient);
 	}
 	/*
 	 while (1) {
 	 //Invio count al server
 	 //Sleep
 	 count++;
+	 invioCountAlServer(count);
+	 sleep(rand() % MAX_SLEEP_TIME);
 	 }*/
 	return 0;
 }
@@ -55,4 +62,18 @@ int loadIdFromConfig() {
 	}
 	printf("[CONFIG] Nessun file di config trovato\n");
 	return -1;
+}
+
+int richiestaIdAlServer() {
+	//Richiede un nuovo id al server e lo salva nel file config
+	return 0;
+}
+
+int richiestaCountAlServer(int idClient) {
+	//richiede l'ultimo count salvato dal server
+	return 0;
+}
+
+void invioCountAlServer(int count) {
+	//invia count al server
 }
