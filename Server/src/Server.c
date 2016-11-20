@@ -7,6 +7,8 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 
+#include <errno.h>
+
 #define CONFIG_FILENAME "config"
 #define BUFF_SIZE 255
 
@@ -27,12 +29,17 @@ FILE * aperturaFileNClient(int *numClient) {
 	}
 }
 
+void fWriteString(FILE *f, char s[]) {
+	fseek(f, 0, SEEK_SET);
+	fputs(s, f);
+	fflush(f);
+}
+
 void fWriteInt(FILE *f, int *n) {
 	char str[10];
 	sprintf(str, "%d", *n);
-	fseek(f, 0, SEEK_SET);
-	fputs(str, f);
-	fflush(f);
+	fWriteString(f, str);
+
 }
 
 int CreaSocketServer() {
@@ -67,41 +74,74 @@ int accettaConnessioni(int sockServer) {
 	return sockClient;
 }
 
+int inizializzazioneConnessioneClient(int *numClient, FILE *fNClient) {
+	int idClient = 0;
+	//Lettura id Client
+
+	if (idClient == 0) /*Nuovo*/{
+		//Invia idClient al client
+		(*numClient)++;
+		fWriteInt(fNClient, &numClient);
+	} else /*Disconnesso*/{
+		//Invia valore a cui era arrivato il client al client
+		FILE *fClient;
+		char sIdClient[10];
+		sprintf(sIdClient, "%d", idClient);
+
+		if (fopen(fClient, sIdClient) == NULL) {
+			printf("Errore");
+			exit(-1);
+		}
+	}
+	return idClient;
+}
+
+void gestioneConnessioneClient(int idClient, int sockClient, FILE *fClient) {
+	char buff[BUFF_SIZE];
+	int lMsg = 0;
+
+	while (1) {
+		//Lettura
+		if ((lMsg = read(sockClient, buff, BUFF_SIZE)) < 0) {
+			//Errore
+			printf("Errore: Client ID: %d ErN: %d", idClient, errno);
+		} else {
+			buff[lMsg] = 0;
+			fWriteString(fClient, buff);
+		}
+	}
+
+}
+
 int main(void) {
 
 	FILE *fNClient;
 	int numClient = 0; //Numero client che hanno richiesto connessione
+	int idClient = 0;
 
 	fNClient = aperturaFileNClient(&numClient);
 
 	int sockServer = 0;
 
+	int sockClient = 0;
+
 	sockServer = CreaSocketServer();
 
-	//Accetta connessioni dai client
+	//TODO:Accetta connessioni dai client
 
-	switch (fork()) {
-	case 0: /*Figlio*/{
-		//In ascolto per nuove connessioni
-		break;
+	while (1) { //TODO:Termina alla terminazione del client associato
+
+		switch (fork()) {
+		case 0: /*Figlio*/{
+			gestioneConnessioneClient(fNClient);
+			exit(1);		//Comando che non deve essere mai raggiunto
+			break;
+		}
+		default: /*Padre*/{
+
+		}
+		}
 	}
-	default: /*Padre*/{
-		//Crea connessione con client
-		//Invia valori inizializzazione (idClient = numClient)
-
-		numClient++;
-		fWriteInt(fNClient,&numClient);
-
-		//if (idClient == 0) /*Nuovo*/{
-		//Invia idClient al client
-		//} else /*Disconnesso*/{
-		//Invia valore a cui era arrivato il client al client
-		//In ascolto per valore
-		//Scrittura del valore sul file del relativo client
-		//}
-		fclose(fNClient);
-
-	}
-	}
+	fclose(fNClient);
 	return EXIT_SUCCESS;
 }
