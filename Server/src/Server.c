@@ -35,11 +35,10 @@ void fWriteString(FILE *f, char s[]) {
 	fflush(f);
 }
 
-void fWriteInt(FILE *f, int *n) {
+void fWriteInt(FILE *f, int n) {
 	char str[10];
-	sprintf(str, "%d", *n);
+	sprintf(str, "%d", n);
 	fWriteString(f, str);
-
 }
 
 int CreaSocketServer() {
@@ -74,34 +73,49 @@ int accettaConnessioni(int sockServer) {
 	return sockClient;
 }
 
-int inizializzazioneConnessioneClient(int *numClient, FILE *fNClient) {
-	int idClient = 0;
-	//Lettura id Client
-
+int inizializzazioneConnessioneClient(int numClient) {
+	int idClient;
+	FILE *fClient;
+	char str[10];
+	//TODO:Lettura id Client
 	if (idClient == 0) /*Nuovo*/{
-		//Invia idClient al client
-		(*numClient)++;
-		fWriteInt(fNClient, &numClient);
-	} else /*Disconnesso*/{
-		//Invia valore a cui era arrivato il client al client
-		FILE *fClient;
-		char sIdClient[10];
-		sprintf(sIdClient, "%d", idClient);
+		idClient = numClient;
+		//TODO:Invia idClient al client
 
-		if (fopen(fClient, sIdClient) == NULL) {
-			printf("Errore");
+		sprintf(str, "%d", idClient);
+		if ((fClient = fopen(str, "w")) == NULL) {
+			printf("Errore apertura file client %d", idClient);
 			exit(-1);
+		} else {
+			fWriteInt(fClient,idClient);
+			//TODO: inviare sClient al client
+			idClient = strtol(str, NULL, 10);
+		}
+
+	} else /*Disconnesso*/{
+		//TODO:Invia valore a cui era arrivato il client al client
+		sprintf(str, "%d", idClient);
+
+		if ((fClient = fopen(str, "r+")) == NULL) {
+			printf("Errore apertura file client %d", idClient);
+			exit(-1);
+		} else {
+			fgets(str, 0, fClient);
+			//TODO: inviare sClient al client
+			idClient = strtol(str, NULL, 10);
 		}
 	}
+	fclose(fClient);
 	return idClient;
 }
 
-void gestioneConnessioneClient(int idClient, int sockClient, FILE *fClient) {
+void gestioneConnessioneClient(int idClient, int sockClient) {
+	FILE *fClient;
 	char buff[BUFF_SIZE];
 	int lMsg = 0;
-
+	//TODO: Apertura file fClient
 	while (1) {
-		//Lettura
+		//TODO:Lettura messaggio dal client
 		if ((lMsg = read(sockClient, buff, BUFF_SIZE)) < 0) {
 			//Errore
 			printf("Errore: Client ID: %d ErN: %d", idClient, errno);
@@ -127,13 +141,17 @@ int main(void) {
 
 	sockServer = CreaSocketServer();
 
-	//TODO:Accetta connessioni dai client
-
 	while (1) { //TODO:Termina alla terminazione del client associato
+
+		//TODO:Accetta connessioni dai client
+
+		numClient++;
+		fWriteInt(fNClient, &numClient);
 
 		switch (fork()) {
 		case 0: /*Figlio*/{
-			gestioneConnessioneClient(fNClient);
+			idClient = inizializzazioneConnessioneClient(numClient);
+			gestioneConnessioneClient(idClient, sockClient);
 			exit(1);		//Comando che non deve essere mai raggiunto
 			break;
 		}
