@@ -18,7 +18,7 @@
 #define MAX_SLEEP_TIME 10
 #define CONFIG_FILENAME "config"
 #define SERVER_PORT 60000
-#define BUFFER_SIZE 100
+#define BUFFER_SIZE 20
 
 int loadIdFromConfig() {
 	FILE *config;
@@ -54,13 +54,16 @@ void saveIdToConfig(int id) {
 void sendIntToServer(int sock, int n) {
 	char buff[BUFFER_SIZE];
 	sprintf(buff, "%d", n);
-	write(sock, buff, sizeof(buff));
+	if (write(sock, buff, sizeof(buff)) <= 0) {
+		printf("Server disconnesso\n");
+		exit(-4);
+	}
 }
 
 int readIntFromServer(int sock) {
 	char buff[BUFFER_SIZE];
 	int res, n;
-	if ((res = read(sock, buff, sizeof(buff))) < 0) {
+	if ((res = read(sock, buff, sizeof(buff))) <= 0) {
 		printf("Errore\n");
 		return -1;
 	} else {
@@ -84,6 +87,7 @@ int requestIdFromServer(int sock) {
 int requestCountFromServer(int sock, int idClient) {
 	//richiede l'ultimo count salvato dal server
 	int count = 0;
+	sendIntToServer(sock, idClient);
 	if ((count = readIntFromServer(sock)) <= 0) {
 		return 0;
 	}
@@ -107,12 +111,12 @@ int main(int argc, char *argv[]) {
 
 	if (argc != 2) {
 		printf("Parametri richiesti: IP_SERVER\n");
-		return -1;
+		exit(-1);
 	}
 
 	if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
 		printf("Errore nel socket\n");
-		return -2;
+		exit(-2);
 	}
 
 	ip = gethostbyname(argv[1]);
@@ -122,8 +126,10 @@ int main(int argc, char *argv[]) {
 
 	if (connect(sockfd, (struct sockaddr *) &serverAddr, sizeof(serverAddr)) < 0) {
 		printf("Impossibile connettersi al server\n");
-		return -3;
+		exit(-3);
 	}
+
+	printf("Connesso al server\n");
 
 	idClient = loadIdFromConfig();
 
@@ -133,12 +139,15 @@ int main(int argc, char *argv[]) {
 		//Richiesta id al server (invia 0)
 		//idClient = idDatoDalServer
 		idClient = requestIdFromServer(sockfd);
+		printf("ID ricevuto dal server: %d\n", idClient);
 		count = 0;
 	} else /*Gia avviato*/{
 		//Invio id (valoreLetto) al server
 		//idClient = idPrecedenteSalvatoNelServer
 		//count = valorePrimaDellaDisconnessione
+		printf("Richiesta count al server\n");
 		count = requestCountFromServer(sockfd, idClient);
+		printf("Ricevuto count da server: %d\n", count);
 	}
 
 	while (1) {
@@ -146,6 +155,7 @@ int main(int argc, char *argv[]) {
 		//Sleep
 		count++;
 		sendCountToServer(sockfd, count);
+		printf("Inviato count: %d\n", count);
 		sleep(rand() % MAX_SLEEP_TIME);
 	}
 	return 0;
