@@ -48,6 +48,10 @@ void saveIdToConfig(int id) {
 		sprintf(buff, "%d", id);
 		fputs(buff, config);
 		fclose(config);
+		printf("[CONFIG] Salvato ID: %d\n", id);
+	} else {
+		printf("[ERRORE] Impossibile creare file config\n");
+		exit(-1);
 	}
 }
 
@@ -55,25 +59,23 @@ void sendIntToServer(int sock, int n) {
 	char buff[BUFFER_SIZE];
 	sprintf(buff, "%d", n);
 	if (write(sock, buff, sizeof(buff)) <= 0) {
-		printf("Server disconnesso\n");
-		exit(-4);
+		printf("[ERRORE] Server disconnesso\n");
+		exit(-1);
 	}
 }
 
 int readIntFromServer(int sock) {
 	char buff[BUFFER_SIZE];
-	int res, n;
-	if ((res = read(sock, buff, sizeof(buff))) <= 0) {
-		printf("Errore\n");
-		return -1;
+
+	if ((read(sock, buff, sizeof(buff))) <= 0) {
+		printf("[ERRORE] Server disconnesso\n");
+		exit(-1);
 	} else {
-		n = strtol(buff, NULL, 10);
-		return n;
+		return strtol(buff, NULL, 10);
 	}
 }
 
 int requestIdFromServer(int sock) {
-	//Richiede un nuovo id al server e lo salva nel file config
 	int id = -1;
 	sendIntToServer(sock, 0);
 	id = readIntFromServer(sock);
@@ -85,7 +87,6 @@ int requestIdFromServer(int sock) {
 }
 
 int requestCountFromServer(int sock, int idClient) {
-	//richiede l'ultimo count salvato dal server
 	int count = 0;
 	sendIntToServer(sock, idClient);
 	if ((count = readIntFromServer(sock)) <= 0) {
@@ -110,13 +111,13 @@ int main(int argc, char *argv[]) {
 	srand(time(NULL));
 
 	if (argc != 2) {
-		printf("Parametri richiesti: IP_SERVER\n");
+		printf("[ERRORE] Parametri richiesti: IP_SERVER\n");
 		exit(-1);
 	}
 
 	if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-		printf("Errore nel socket\n");
-		exit(-2);
+		printf("[ERRORE] Impossibile aprire il socket\n");
+		exit(-1);
 	}
 
 	ip = gethostbyname(argv[1]);
@@ -125,38 +126,36 @@ int main(int argc, char *argv[]) {
 	bcopy(ip->h_addr, &serverAddr.sin_addr, ip->h_length);
 
 	if (connect(sockfd, (struct sockaddr *) &serverAddr, sizeof(serverAddr)) < 0) {
-		printf("Impossibile connettersi al server\n");
-		exit(-3);
+		printf("[ERRORE] Impossibile connettersi al server\n");
+		exit(-1);
 	}
 
-	printf("Connesso al server\n");
+	printf("[INFO] Connesso al server\n");
 
 	idClient = loadIdFromConfig();
 
-	//Creazione connessione con server
-	//Lettura file
 	if (idClient < 1)/*Nuovo*/{
-		//Richiesta id al server (invia 0)
-		//idClient = idDatoDalServer
 		idClient = requestIdFromServer(sockfd);
-		printf("ID ricevuto dal server: %d\n", idClient);
+		printf("[INFO] ID ricevuto dal server: %d\n", idClient);
 		count = 0;
 	} else /*Gia avviato*/{
-		//Invio id (valoreLetto) al server
-		//idClient = idPrecedenteSalvatoNelServer
-		//count = valorePrimaDellaDisconnessione
-		printf("Richiesta count al server\n");
+		printf("[INFO] Richiesta count al server\n");
 		count = requestCountFromServer(sockfd, idClient);
-		printf("Ricevuto count da server: %d\n", count);
+		printf("[INFO] Ricevuto count da server: %d\n", count);
 	}
 
 	while (1) {
-		//Invio count al server
-		//Sleep
 		count++;
 		sendCountToServer(sockfd, count);
-		printf("Inviato count: %d\n", count);
+		printf("[INFO] Inviato count: %d\n", count);
 		sleep(rand() % MAX_SLEEP_TIME);
+
+		if (count % 5 == 4) {
+			sendCountToServer(sockfd, -1);
+			close(sockfd);
+			remove(CONFIG_FILENAME);
+			exit(0);
+		}
 	}
 	return 0;
 }
